@@ -1,0 +1,14 @@
+# Bỏ qua thư viện thư mục Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Bỏ qua môi trường ảo và thư viện Backend
+backend/venv/
+backend/__pycache__/
+
+# BỎ QUA FILE BẢO MẬT (QUAN TRỌNG NHẤT)
+backend/.env
+
+# Bỏ qua các file rác của hệ điều hành
+.DS_Store
+Thumbs.db
