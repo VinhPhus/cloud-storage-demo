@@ -23,9 +23,7 @@ function App() {
     setUploading(true);
 
     try {
-      const sigResponse = await axios.get(
-        "http://127.0.0.1:5000/api/v1/cloudinary/signature",
-      );
+      const sigResponse = await axios.get("/api/v1/cloudinary/signature");
       const { signature, timestamp, api_key, cloud_name } = sigResponse.data;
 
       const formData = new FormData();
