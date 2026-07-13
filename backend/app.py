@@ -6,14 +6,11 @@ import cloudinary
 import cloudinary.utils
 from dotenv import load_dotenv
 
-# Tải các biến từ file .env
 load_dotenv()
 
 app = Flask(__name__)
-# Bật CORS để cho phép Frontend React gọi API
 CORS(app)
 
-# Cấu hình Cloudinary SDK
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -24,24 +21,24 @@ cloudinary.config(
 @app.route('/api/v1/cloudinary/signature', methods=['GET'])
 def get_signature():
     try:
-        # 1. Lấy timestamp hiện tại (tính bằng giây)
         timestamp = int(time.time())
+        # Thêm thư mục (folder) vào tham số cần ký để quản lý file gọn gàng hơn
+        folder_name = "cloud_storage_demo"
         
-        # 2. Tham số cần ký (bắt buộc phải có timestamp)
         params_to_sign = {
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "folder": folder_name
         }
         
-        # 3. Tạo chữ ký bảo mật bằng API Secret (tự động lấy từ config)
         api_secret = cloudinary.config().api_secret
         signature = cloudinary.utils.api_sign_request(params_to_sign, api_secret)
         
-        # 4. Trả về JSON cho Frontend
         return jsonify({
             "signature": signature,
             "timestamp": timestamp,
             "api_key": cloudinary.config().api_key,
-            "cloud_name": cloudinary.config().cloud_name
+            "cloud_name": cloudinary.config().cloud_name,
+            "folder": folder_name
         }), 200
 
     except Exception as e:
@@ -49,5 +46,4 @@ def get_signature():
         return jsonify({"error": "Không thể tạo chữ ký bảo mật"}), 500
 
 if __name__ == '__main__':
-    # Chạy server ở cổng 5000
     app.run(port=5000, debug=True)

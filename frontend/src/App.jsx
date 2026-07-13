@@ -4,6 +4,7 @@ import "./App.css";
 
 function App() {
   const [file, setFile] = useState(null);
+  const [fileType, setFileType] = useState(null); // 'image' hoặc 'video'
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState(null);
@@ -14,6 +15,13 @@ function App() {
       setFile(selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
       setUploadedUrl(null);
+
+      // Nhận diện xem người dùng đang chọn ảnh hay video
+      if (selectedFile.type.startsWith("video/")) {
+        setFileType("video");
+      } else {
+        setFileType("image");
+      }
     }
   };
 
@@ -23,22 +31,29 @@ function App() {
     setUploading(true);
 
     try {
+      // 1. Lấy chữ ký từ Python (Đã cập nhật dùng đường dẫn tương đối)
       const sigResponse = await axios.get("/api/v1/cloudinary/signature");
-      const { signature, timestamp, api_key, cloud_name } = sigResponse.data;
+      const { signature, timestamp, api_key, cloud_name, folder } =
+        sigResponse.data;
 
+      // 2. Đóng gói dữ liệu
       const formData = new FormData();
       formData.append("file", file);
       formData.append("api_key", api_key);
       formData.append("timestamp", timestamp);
       formData.append("signature", signature);
+      formData.append("folder", folder);
 
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`;
+      // 3. Dùng /auto/upload để Cloudinary tự phân loại Ảnh hoặc Video
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`;
       const uploadResponse = await axios.post(cloudinaryUrl, formData);
 
       setUploadedUrl(uploadResponse.data.secure_url);
     } catch (error) {
       console.error("Lỗi khi upload:", error);
-      alert("Đã xảy ra lỗi trong quá trình tải ảnh lên.");
+      alert(
+        "Đã xảy ra lỗi trong quá trình tải lên đám mây. Hãy kiểm tra lại kết nối hoặc console log.",
+      );
     } finally {
       setUploading(false);
     }
@@ -52,12 +67,11 @@ function App() {
           <p className="subtitle">Hệ thống lưu trữ tài sản tĩnh tối ưu</p>
         </div>
 
-        {/* Khung kéo thả / chọn file */}
         <div className="dropzone-container">
           <input
             type="file"
             className="file-input"
-            accept="image/*"
+            accept="image/*,video/*"
             onChange={handleFileChange}
           />
 
@@ -77,20 +91,26 @@ function App() {
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
                 />
               </svg>
-              <p>Nhấn vào đây hoặc kéo thả ảnh</p>
-              <span className="file-hint">Hỗ trợ JPG, PNG, WEBP</span>
+              <p>Nhấn vào đây hoặc kéo thả file</p>
+              <span className="file-hint">
+                Hỗ trợ JPG, PNG, WEBP, MP4, MOV...
+              </span>
             </div>
           ) : (
             <div className="preview-content">
-              <img src={preview} alt="Preview" className="image-preview" />
+              {fileType === "video" ? (
+                <video src={preview} controls className="image-preview" />
+              ) : (
+                <img src={preview} alt="Preview" className="image-preview" />
+              )}
+
               <div className="change-file-overlay">
-                <span>Nhấn để đổi ảnh khác</span>
+                <span>Nhấn để đổi file khác</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Nút Tải lên */}
         <button
           className={`btn-upload ${uploading ? "loading" : ""} ${!file ? "disabled" : ""}`}
           onClick={handleUpload}
@@ -99,14 +119,13 @@ function App() {
           {uploading ? (
             <>
               <span className="spinner"></span>
-              Đang xử lý...
+              Đang đẩy lên mây...
             </>
           ) : (
-            "🚀 Tải ảnh lên Đám mây"
+            "🚀 Tải file lên Đám mây"
           )}
         </button>
 
-        {/* Kết quả trả về */}
         {uploadedUrl && (
           <div className="success-box">
             <div className="success-header">
@@ -126,13 +145,35 @@ function App() {
               </svg>
               <span>Tải lên thành công!</span>
             </div>
-            <div className="link-box">
+            <div className="link-box" style={{ marginBottom: "16px" }}>
               <input type="text" readOnly value={uploadedUrl} />
               <button
                 onClick={() => navigator.clipboard.writeText(uploadedUrl)}
               >
                 Copy
               </button>
+            </div>
+
+            <div
+              style={{
+                borderRadius: "12px",
+                overflow: "hidden",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              {fileType === "video" ? (
+                <video
+                  src={uploadedUrl}
+                  controls
+                  style={{ width: "100%", display: "block" }}
+                />
+              ) : (
+                <img
+                  src={uploadedUrl}
+                  alt="Cloud Asset"
+                  style={{ width: "100%", display: "block" }}
+                />
+              )}
             </div>
           </div>
         )}
